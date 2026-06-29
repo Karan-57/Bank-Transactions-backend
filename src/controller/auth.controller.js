@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken')
 
 const userModel = require('../models/user.model')
+const emailService = require('../services/mail.service')
 
 /**
  * - user register controller
@@ -13,7 +14,7 @@ async function registerUserController(req, res) {
     const userExists = await userModel.findOne({ email: email });
 
     if (userExists) {
-        res.status(422).json({
+        res.status(409).json({
             message: "User with email already exists",
             status: "failed"
         });
@@ -38,6 +39,8 @@ async function registerUserController(req, res) {
         },
         token
     });
+
+    await emailService.sendRegistrationEmail(user.email, user.name);
 
 }
 
