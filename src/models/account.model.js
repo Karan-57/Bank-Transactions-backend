@@ -21,6 +21,12 @@ const accountSchema = mongoose.Schema({
         type: String,
         required: [true, "currency is required to create an account"],
         default: "INR"
+    },
+    systemUser:{
+        type:Boolean,
+        default:false,
+        immutable:true,
+        select:false
     }
 }, {
     timestamps: true
@@ -58,7 +64,7 @@ accountSchema.methods.getBalance = async function(){
         {
             $project:{
                 _id:0,
-                balance:{$subtract:["$totalCredit","$totalDebitf"]}
+                balance:{$subtract:["$totalCredit","$totalDebit"]}
             }
         }
     ]);

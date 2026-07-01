@@ -11,6 +11,19 @@ const accountRouter = Router()
  * - Protected route
  */
 
-accountRouter.post('/', authMiddleware, accountController.createAccountController)
+accountRouter.post('/', authMiddleware.authMiddleware, accountController.createAccountController)
+
+/**
+ * - GET /api/accounts
+ * - get all user's account
+ * - Protected route
+*/
+accountRouter.get('/', authMiddleware.authMiddleware, accountController.getAllUserAccounts)
+/**
+ * - GET /api/accounts
+ * - get all user's account
+ * - Protected route
+ */
+accountRouter.get('/balance/:accountId', authMiddleware.authMiddleware, accountController.getUserBalance)
 
 module.exports = accountRouter

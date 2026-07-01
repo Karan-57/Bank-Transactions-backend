@@ -3,7 +3,6 @@ const accountModel = require('../models/account.model')
 async function createAccountController(req, res) {
     const user = req.user;
 
-    console.log(user)
 
     const account = await accountModel.create({ user: user._id });
 
@@ -13,4 +12,43 @@ async function createAccountController(req, res) {
     });
 }
 
-module.exports = { createAccountController };
+async function getAllUserAccounts(req,res){
+    const accounts = await accountModel.find({user: req.user._id});
+
+    if(accounts.length === 0){
+        res.status(200).json({
+            message:"no accounts found"
+        });
+        return;
+    }
+
+    res.status(200).json({
+        message:"accounts fetched sucessfully",
+        accounts
+    });
+}
+
+async function getUserBalance(req,res){
+    if(!mongoose.Types.ObjectId.isValid(req.params.accountId)){
+        return res.status(400).json({
+            message: "invalid account id"
+        });
+    }
+
+    const account = await accountModel.findById(req.params.accountId);
+
+
+    if(!account){
+        return res.status(404).json({
+            message: "account not found"
+        });
+    }
+
+    const balance = await account.getBalance();
+
+    res.status(200).json({
+        message:"balance fetched sucessfully"
+    });
+}
+
+module.exports = { createAccountController, getAllUserAccounts, getUserBalance };

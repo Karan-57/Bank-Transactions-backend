@@ -107,35 +107,40 @@ async function createTransaction(req,res){
     const session = await mongoose.startSession();
     session.startTransaction();
 
-    const transaction = await transactionModel.create({
+    const transactionArray = await transactionModel.create([{
         fromAccount,
         toAccount,
         amount,
         idempotencyKey,
-    },{session});
+    }],{session});
+
+    const transaction = transactionArray[0];
 
     /**
      * create debit ledger entry
      */
 
-    const debitLedgerEntry = await ledgerModel.create({
+    const debitLedgerEntryArray = await ledgerModel.create([{
         account:fromAccount,
         amount,
         transaction: transaction._id,
         type:"DEBIT"
-    },{session});
+    }],{session});
 
+    const debitLedgerEntry = debitLedgerEntryArray[0];
+    
     /**
      * create credit ledger entry
-     */
-
-    const creditLedgerEntry = await ledgerModel.create({
-        account:toAccount,
-        amount,
-        transaction: transaction._id,
-        type:"CREDIT"
-    },{session});
-
+    */
+   
+   const creditLedgerEntryArray = await ledgerModel.create([{
+       account:toAccount,
+       amount,
+       transaction: transaction._id,
+       type:"CREDIT"
+    }],{session});
+    
+    const creditLedgerEntry = creditLedgerEntryArray[0];
     /**
      * mark transaction COMPLETED
      */
@@ -157,3 +162,76 @@ async function createTransaction(req,res){
         transaction
     });
 }
+
+async function createInitialFunds(req,res){
+    const {toAccount, amount, idempotencyKey} = req.body;
+
+    if(!toAccount || !amount || !idempotencyKey){
+        res.status(400).json({
+            message:" toAccount, amount and idempotencyKey are required",
+        });
+        return;
+    }
+
+    const toUserAccount = await accountModel.findOne({_id: toAccount});
+
+    if(!toUserAccount){
+        return res.status(400).json({
+            message:"invalid toAccount"
+        });
+    }
+    
+    const fromUserAccount = await accountModel.findOne({
+        systemUser:true,
+        user: req.user._id
+    });
+    
+    if(!fromUserAccount){
+        return res.status(400).json({
+            message:"system account not found"
+        });
+    }
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    const transactionArray = await transactionModel.create([{
+        fromAccount:fromUserAccount._id,
+        toAccount,
+        amount,
+        idempotencyKey,
+    }],{session});
+
+    const transaction = transactionArray[0];
+
+    const debitLedgerEntryArray = await ledgerModel.create([{
+        account:fromUserAccount._id,
+        type:"DEBIT",
+        amount,
+        transaction:transaction._id
+    }],{session});
+
+    const debitLedgerEntry = debitLedgerEntryArray[0]; 
+    
+    const creditLedgerEntryArray = await ledgerModel.create([{
+        account:toUserAccount._id,
+        type:"CREDIT",
+        amount,
+        transaction:transaction._id
+    }],{session});
+
+    const creditLedgerEntry = creditLedgerEntryArray[0]; 
+
+    transaction.status = "COMPLETED";
+    await transaction.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+
+    return res.status(201).json({
+        message:"Transaction completed"
+    });
+}
+
+module.exports = {createTransaction, createInitialFunds};
