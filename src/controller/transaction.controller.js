@@ -32,7 +32,7 @@ async function createTransaction(req,res){
         return;
     } 
 
-    const fromUserAccount = await accountModel.findOne({_id: fromAccount});
+    const fromUserAccount = await accountModel.findOne({_id: fromAccount, user:req.user._id});
     const toUserAccount = await accountModel.findOne({_id: toAccount});
 
     if(!fromUserAccount || !toUserAccount){
@@ -85,7 +85,7 @@ async function createTransaction(req,res){
 
     if(fromUserAccount.status !== "ACTIVE" || toUserAccount.status !== "ACTIVE"){
         res.status(400).json({
-            message:"Both formAccount and toAccount must be active"
+            message:"Both fromAccount and toAccount must be active"
         });
         return;
     }
@@ -103,64 +103,77 @@ async function createTransaction(req,res){
     /**
      * create transaction - PENDING
      */
+    try{
+        const session = await mongoose.startSession();
+        session.startTransaction();
 
-    const session = await mongoose.startSession();
-    session.startTransaction();
+        const transactionArray = await transactionModel.create([{
+            fromAccount,
+            toAccount,
+            amount,
+            idempotencyKey,
+        }],{session});
 
-    const transactionArray = await transactionModel.create([{
-        fromAccount,
-        toAccount,
-        amount,
-        idempotencyKey,
-    }],{session});
+        const transaction = transactionArray[0];
 
-    const transaction = transactionArray[0];
 
-    /**
-     * create debit ledger entry
-     */
 
-    const debitLedgerEntryArray = await ledgerModel.create([{
-        account:fromAccount,
-        amount,
-        transaction: transaction._id,
-        type:"DEBIT"
-    }],{session});
+        /**
+         * create debit ledger entry
+         */
 
-    const debitLedgerEntry = debitLedgerEntryArray[0];
+        const debitLedgerEntryArray = await ledgerModel.create([{
+            account:fromAccount,
+            amount,
+            transaction: transaction._id,
+            type:"DEBIT"
+        }],{session});
+
+        const debitLedgerEntry = debitLedgerEntryArray[0];
+
+        await new Promise(resolve => setTimeout(resolve, 100*1000));
+        
+        /**
+         * create credit ledger entry
+        */
     
-    /**
-     * create credit ledger entry
-    */
-   
-   const creditLedgerEntryArray = await ledgerModel.create([{
-       account:toAccount,
-       amount,
-       transaction: transaction._id,
-       type:"CREDIT"
-    }],{session});
+        const creditLedgerEntryArray = await ledgerModel.create([{
+            account:toAccount,
+            amount,
+            transaction: transaction._id,
+            type:"CREDIT"
+        }],{session});
+        
+        const creditLedgerEntry = creditLedgerEntryArray[0];
+        /**
+         * mark transaction COMPLETED
+         */
+
+        await transactionModel.findOneAndUpdate(
+            {_id: transaction._id},
+            {status: "COMPLETED"},
+            {session}
+        );
+
+        /**
+         *  commit mongodb session
+         */
+
+        await session.commitTransaction();
+        session.endSession();
+
+        await emailService.sendTransactionSuccessEmail(req.user.email, req.user.name, amount, transaction._id, toAccount);
+        
+        res.status(201).json({
+            message:"Transaction sucessful",
+            transaction
+        });
+    }catch(err){
+         return res.status(400).json({
+            message:"transaction is pending, try again after some time"
+        })
+    }
     
-    const creditLedgerEntry = creditLedgerEntryArray[0];
-    /**
-     * mark transaction COMPLETED
-     */
-
-    transaction.status = "COMPLETED";
-    await transaction.save({ session });
-
-    /**
-     *  commit mongodb session
-     */
-
-    await session.commitTransaction();
-    session.endSession();
-
-    await emailService.sendTransactionSuccessEmail(req.user.email, req.user.name, amount, transaction._id, toAccount);
-    
-    res.status(201).json({
-        message:"Transaction sucessful",
-        transaction
-    });
 }
 
 async function createInitialFunds(req,res){
@@ -222,12 +235,15 @@ async function createInitialFunds(req,res){
 
     const creditLedgerEntry = creditLedgerEntryArray[0]; 
 
-    transaction.status = "COMPLETED";
-    await transaction.save({ session });
+    await transactionModel.findOneAndUpdate(
+        {_id: transaction._id},
+        {status: "COMPLETED"},
+        {session}
+    );
 
     await session.commitTransaction();
     session.endSession();
-
+ 
 
     return res.status(201).json({
         message:"Transaction completed"

@@ -20,8 +20,8 @@ accountRouter.post('/', authMiddleware.authMiddleware, accountController.createA
 */
 accountRouter.get('/', authMiddleware.authMiddleware, accountController.getAllUserAccounts)
 /**
- * - GET /api/accounts
- * - get all user's account
+ * - GET /api/accounts/balance/:accountId
+ * - get user's specific account's balance
  * - Protected route
  */
 accountRouter.get('/balance/:accountId', authMiddleware.authMiddleware, accountController.getUserBalance)

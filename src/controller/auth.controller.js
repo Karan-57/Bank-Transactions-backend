@@ -32,6 +32,7 @@ async function registerUserController(req, res) {
     res.cookie("token", token);
 
     res.status(201).json({
+        message:"user registered",
         user: {
             _id: user._id,
             email: user.email,

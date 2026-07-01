@@ -1,3 +1,5 @@
+const mongoose = require('mongoose')
+
 const accountModel = require('../models/account.model')
 
 async function createAccountController(req, res) {
@@ -47,7 +49,8 @@ async function getUserBalance(req,res){
     const balance = await account.getBalance();
 
     res.status(200).json({
-        message:"balance fetched sucessfully"
+        message:"balance fetched sucessfully",
+        balance
     });
 }
 
