@@ -205,49 +205,55 @@ async function createInitialFunds(req,res){
         });
     }
 
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    try{
+        const session = await mongoose.startSession();
+        session.startTransaction();
 
-    const transactionArray = await transactionModel.create([{
-        fromAccount:fromUserAccount._id,
-        toAccount,
-        amount,
-        idempotencyKey,
-    }],{session});
+        const transactionArray = await transactionModel.create([{
+            fromAccount:fromUserAccount._id,
+            toAccount,
+            amount,
+            idempotencyKey,
+        }],{session});
 
-    const transaction = transactionArray[0];
+        const transaction = transactionArray[0];
 
-    const debitLedgerEntryArray = await ledgerModel.create([{
-        account:fromUserAccount._id,
-        type:"DEBIT",
-        amount,
-        transaction:transaction._id
-    }],{session});
+        const debitLedgerEntryArray = await ledgerModel.create([{
+            account:fromUserAccount._id,
+            type:"DEBIT",
+            amount,
+            transaction:transaction._id
+        }],{session});
 
-    const debitLedgerEntry = debitLedgerEntryArray[0]; 
+        const debitLedgerEntry = debitLedgerEntryArray[0]; 
+        
+        const creditLedgerEntryArray = await ledgerModel.create([{
+            account:toUserAccount._id,
+            type:"CREDIT",
+            amount,
+            transaction:transaction._id
+        }],{session});
+
+        const creditLedgerEntry = creditLedgerEntryArray[0]; 
+
+        await transactionModel.findOneAndUpdate(
+            {_id: transaction._id},
+            {status: "COMPLETED"},
+            {session}
+        );
+
+        await session.commitTransaction();
+        session.endSession();
     
-    const creditLedgerEntryArray = await ledgerModel.create([{
-        account:toUserAccount._id,
-        type:"CREDIT",
-        amount,
-        transaction:transaction._id
-    }],{session});
 
-    const creditLedgerEntry = creditLedgerEntryArray[0]; 
-
-    await transactionModel.findOneAndUpdate(
-        {_id: transaction._id},
-        {status: "COMPLETED"},
-        {session}
-    );
-
-    await session.commitTransaction();
-    session.endSession();
- 
-
-    return res.status(201).json({
-        message:"Transaction completed"
-    });
+        return res.status(201).json({
+            message:"Transaction completed"
+        });
+    }catch(err){
+        res.status(400).json({
+            message:"transaction is pending, try again later"
+        })
+    }
 }
 
 module.exports = {createTransaction, createInitialFunds};
