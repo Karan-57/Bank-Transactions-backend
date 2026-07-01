@@ -31,13 +31,10 @@ async function getAllUserAccounts(req,res){
 }
 
 async function getUserBalance(req,res){
-    if(!mongoose.Types.ObjectId.isValid(req.params.accountId)){
-        return res.status(400).json({
-            message: "invalid account id"
+    const account = await accountModel.findOne({
+        _id:req.params.accountId,
+        user: req.user._id
         });
-    }
-
-    const account = await accountModel.findById(req.params.accountId);
 
 
     if(!account){
