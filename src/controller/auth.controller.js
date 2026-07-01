@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken')
 
 const userModel = require('../models/user.model')
-const emailService = require('../services/mail.service')
+const emailService = require('../services/email.service')
 
 /**
  * - user register controller

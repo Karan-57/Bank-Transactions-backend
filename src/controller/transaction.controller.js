@@ -2,19 +2,20 @@ const accountModel = require('../models/account.model')
 const transactionModel = require('../models/transaction.model')
 const ledgerModel = require('../models/ledger.model')
 const mongoose = require('mongoose')
+const emailService = require('../services/email.service')
 
 /**
  * transaction flow:
- * 1. validate request
- * 2. validate idempotency key
- * 3. check account status
- * 4. derive senders balance from ledger
- * 5. create transaction- PENDING
- * 6. create debit ledger entry
- * 7. create credit ledger entry
- * 8. mark transaction COMPLETED
- * 9. commit mongodb session
- * 10. send email notification
+    * 1. validate request
+    * 2. validate idempotency key
+    * 3. check account status
+    * 4. derive senders balance from ledger
+    * 5. create transaction- PENDING
+    * 6. create debit ledger entry
+    * 7. create credit ledger entry
+    * 8. mark transaction COMPLETED
+    * 9. commit mongodb session
+    * 10. send email notification
  */
 
 async function createTransaction(req,res){
@@ -147,5 +148,12 @@ async function createTransaction(req,res){
      */
 
     await session.commitTransaction();
-    session.endSession()
+    session.endSession();
+
+    await emailService.sendTransactionSuccessEmail(req.user.email, req.user.name, amount, transaction._id, toAccount);
+    
+    res.status(201).json({
+        message:"Transaction sucessful",
+        transaction
+    });
 }

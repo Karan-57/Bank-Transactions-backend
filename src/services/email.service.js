@@ -105,7 +105,7 @@ Thank you for joining us.
     await sendEmail(userEmail, subject, text, html);
 }
 
-async function sendTransactionSuccessEmail(userEmail,name,amount,transactionId) {
+async function sendTransactionSuccessEmail(userEmail,name,amount,transactionId, toAccount) {
 
     const subject = "Transaction Successful";
 
@@ -116,6 +116,7 @@ async function sendTransactionSuccessEmail(userEmail,name,amount,transactionId) 
 
         Transaction Details:
 
+        To: ${toAccount}
         Transaction ID: ${transactionId}
         Amount: ₹${amount}
 
@@ -134,6 +135,8 @@ async function sendTransactionSuccessEmail(userEmail,name,amount,transactionId) 
             <p>Your transaction has been completed successfully.</p>
 
             <div style="margin-top:20px; padding:15px; border:1px solid #ddd; border-radius:8px;">
+
+                <p><strong>To:</strong> ${toAccount}</p>
 
                 <p><strong>Transaction ID:</strong> ${transactionId}</p>
 
@@ -155,7 +158,7 @@ async function sendTransactionSuccessEmail(userEmail,name,amount,transactionId) 
     await sendEmail(userEmail, subject, text, html);
 }
 
-async function sendTransactionFailureEmail(userEmail,name,amount,transactionI) {
+async function sendTransactionFailureEmail(userEmail,name,amount,transactionId,toAccount) {
 
     const subject = "Transaction Failed";
 
@@ -166,6 +169,7 @@ async function sendTransactionFailureEmail(userEmail,name,amount,transactionI) {
 
         Transaction Details:
 
+        To: ${toAccount}
         Transaction ID: ${transactionId}
         Amount: ₹${amount}
 
@@ -187,6 +191,8 @@ async function sendTransactionFailureEmail(userEmail,name,amount,transactionI) {
 
             <div style="margin-top:20px; padding:15px; border:1px solid #ddd; border-radius:8px;">
 
+                <p><strong>To:</strong> ${toAccount}</p>
+
                 <p><strong>Transaction ID:</strong> ${transactionId}</p>
 
                 <p><strong>Amount:</strong> ₹${amount}</p>
@@ -207,6 +213,7 @@ async function sendTransactionFailureEmail(userEmail,name,amount,transactionI) {
     `;
 
     await sendEmail(userEmail, subject, text, html);
+
 }
 
 module.exports = { sendRegistrationEmail, sendTransactionSuccessEmail, sendTransactionFailureEmail };
