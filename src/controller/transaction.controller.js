@@ -130,7 +130,7 @@ async function createTransaction(req,res){
 
         const debitLedgerEntry = debitLedgerEntryArray[0];
 
-        // await new Promise(resolve => setTimeout(resolve, 100*1000));
+        await new Promise(resolve => setTimeout(resolve, 100*1000));
         
         /**
          * create credit ledger entry
