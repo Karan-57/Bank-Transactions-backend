@@ -30,7 +30,11 @@ async function registerUserController(req, res) {
 
     const token = jwt.sign({ user_id: user._id }, process.env.JWT_SECRET, { expiresIn: "3d" });
 
-    res.cookie("token", token);
+    res.cookie("token", token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none"
+    });
 
     res.status(201).json({
         message:"user registered",
@@ -73,7 +77,11 @@ async function loginUserController(req, res) {
 
     const token = jwt.sign({ user_id: user._id }, process.env.JWT_SECRET, { expiresIn: "3d" });
 
-    res.cookie("token", token);
+    res.cookie("token", token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none"
+    });
 
     res.status(200).json({
         message: "user logged in successsfully",
