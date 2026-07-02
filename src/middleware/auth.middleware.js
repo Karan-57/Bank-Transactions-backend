@@ -37,9 +37,6 @@ async function authMiddleware(req, res, next) {
 }
 
 async function systemAuthMiddleware(req,res,next){
-
-    console.log(req.cookies);
-console.log(req.headers.authorization);
     const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
 
     if(!token){
